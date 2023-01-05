@@ -19,6 +19,26 @@ as a binary:
     npm install -g @maphubs/tokml
     tokml file.geojson > file.kml
     tokml < file.geojson > file.kml
+    
+
+## Importing
+
+ESM
+
+```js
+import * as tokml from "@maphubs/tokml"
+```
+
+CommonJS
+
+```js
+var tokml = require('@maphubs/tokml')
+```
+
+Browser
+
+You can also load the built `tokml.js` file directly in a browser script tag and access it globally as `tokml()`
+
 
 ## Example
 
