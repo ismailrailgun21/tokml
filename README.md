@@ -8,15 +8,15 @@ Convert [GeoJSON](http://geojson.org/) to [KML](https://developers.google.com/km
 
 with node/browserify
 
-    npm install --save @maphubs/tokml
+    npm install --save @fulcrumapp/tokml
 
 otherwise:
 
-    wget https://raw.github.com/maphubs/tokml/master/tokml.js
+    wget https://raw.github.com/fulcrumapp/tokml/master/tokml.js
 
 as a binary:
 
-    npm install -g @maphubs/tokml
+    npm install -g @fulcrumapp/tokml
     tokml file.geojson > file.kml
     tokml < file.geojson > file.kml
     
@@ -26,13 +26,13 @@ as a binary:
 ESM
 
 ```js
-import * as tokml from "@maphubs/tokml"
+import * as tokml from "@fulcrumapp/tokml"
 ```
 
 CommonJS
 
 ```js
-var tokml = require('@maphubs/tokml')
+var tokml = require('@fulcrumapp/tokml')
 ```
 
 Browser
@@ -108,3 +108,9 @@ To run tests:
 
     yarn install
     yarn run test
+
+## What's different in this fork?
+The `<Style>` nodes created in previous versions rely on a mapbox.com url, which was subotimal 
+for some use cases. In this fork, the simplestyle-spec colors are implemented in a more 
+explicit manner.
+
