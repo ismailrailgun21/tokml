@@ -19,6 +19,8 @@ test('style', function(t) {
 
     t.test('Style spec', function(tt) {
       geq(tt, 'style_single_marker_color_short');
+      geq(tt, 'style_single_marker_color_long');
+      geq(tt, 'style_all_props');
         
       tt.end();
     });

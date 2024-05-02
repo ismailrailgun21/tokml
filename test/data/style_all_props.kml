@@ -1,0 +1,1 @@
+<Style id="abc123"><IconStyle><color>ff4af112</color><colorMode>normal</colorMode><Icon><href>https://api.tiles.mapbox.com/v3/marker/pin-m-bus+12f14a.png</href></Icon></IconStyle><LineStyle><color>cc483705</color><width>10</width></LineStyle><PolyStyle><color>7fcc2b93</color></PolyStyle><hotSpot xunits="fraction" yunits="fraction" x="0.5" y="0.5"></hotSpot></Style>

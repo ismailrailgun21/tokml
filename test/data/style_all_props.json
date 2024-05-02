@@ -1,0 +1,14 @@
+{
+  "properties": {
+    "stroke": "053748",
+    "stroke-opacity": 0.8,
+    "stroke-width": 10,
+    "fill": "#932bcc",
+    "fill-opacity": 0.5,
+    "marker-shape": "pin",
+    "marker-size": "medium",
+    "marker-symbol": "bus",
+    "marker-color": "#12f14a"
+  },
+  "styleHash": "abc123"
+}
