@@ -21,9 +21,12 @@ test('style', function(t) {
       geq(tt, 'style_single_marker_color_short');
       geq(tt, 'style_single_marker_color_long');
       geq(tt, 'style_all_props');
+      geq(tt, 'style_stroke_props_only');
+      geq(tt, 'style_non_marker_props');
         
       tt.end();
     });
+
     t.end();
 });
 
