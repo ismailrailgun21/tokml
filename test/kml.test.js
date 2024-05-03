@@ -24,8 +24,7 @@ test('tokml', function(t) {
         var kml = tokml(featureCollection, { simplestyle: true });
         
         if (inputColor) {
-            var colorValue = kml.substr(kml.indexOf('<color>') + 7, 8);
-            
+            var colorValue = kml.substr(kml.indexOf('<LineStyle><color>') + 18, 8);
             t.equal(colorValue, expected, 
                 'color ' + (inputColor || '<undefined>') + ' with opacity ' + (inputOpacity || '<undefined>'));
         } else {
