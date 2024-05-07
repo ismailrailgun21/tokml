@@ -47,7 +47,7 @@ function feature(options, styleHashesArray) {
       var styleHash = hashStyle(_.properties)
       if (styleHash) {
 
-        const styleTag = style(_.properties, styleHash);
+        const styleTag = style(_.properties, styleHash, options);
         styleReference = tag('styleUrl', '#' + styleHash);
 
         if (styleHashesArray.indexOf(styleHash) === -1) {
@@ -57,7 +57,6 @@ function feature(options, styleHashesArray) {
 
         removeMarkerStyle(_.properties);
         removePolygonAndLineStyle(_.properties);
-
         // Note that style of GeometryCollection / MultiGeometry is not supported
       }
     }
