@@ -4,6 +4,18 @@ Forked from https://github.com/mapbox/tokml
 
 Convert [GeoJSON](http://geojson.org/) to [KML](https://developers.google.com/kml/documentation/).
 
+## What's different in this fork?
+This fork changes each `<Style>` node to include `<IconStyle>`, `<LineStyle>` and `<PolyStyle>` nodes, each
+with an appropriate `<color>` node. All `<Placemark>` nodes have a `styleHash` associated with them so the styles
+apply to each shape. This approach supports [Fulcrum](https://docs.fulcrumapp.com/docs/developer-information) data,
+which can contain multiple geometry types (Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon)
+within the same file, and seems to apply colors correctly (in most tools).
+
+The [parent](https://github.com/maphubs/tokml) (and [original](https://github.com/mapbox/tokml)) projects used a
+`mapbox.com` url for the `href` in `<Icon>` nodes. This url may have intended to return an icon, but it appears to no
+longer be (publicly) accessible. A new `iconUrl` option has been introduced to allow using a different url, however this
+url will apply to _all_ `<Style><IconStyle><Icon>` nodes, which may cause Point data to show in the incorrect color.
+
 ## Usage
 
 with node/browserify
@@ -95,6 +107,7 @@ for the full document.
 **[simplestyle-spec](https://github.com/mapbox/simplestyle-spec)** support:
 
 - `simplestyle`: set to `true` to convert simplestyle-spec styles into KML styles
+- `iconUrl`: override the `href` of the `<Icon>` nodes within each `<Style>`
 
 ## Development
 
@@ -108,9 +121,3 @@ To run tests:
 
     yarn install
     yarn run test
-
-## What's different in this fork?
-The `<Style>` nodes created in previous versions rely on a mapbox.com url, which was subotimal 
-for some use cases. In this fork, the simplestyle-spec colors are implemented in a more 
-explicit manner.
-
