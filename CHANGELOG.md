@@ -2,6 +2,7 @@
 
 - Outputs each `styleHash` with `IconStyle`, `LineStyle` and `PolyStyle` nodes
 - Allows specifying an `iconUrl` in `options` to overwrite the `href` on each `Icon`
+- Upgrade dependencies
 
 ## 0.6.1
 
