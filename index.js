@@ -1,3 +1,4 @@
+const style = require('./lib/style')
 var esc = require('./lib/xml-escape')
 var strxml = require('./lib/strxml'),
   tag = strxml.tag
@@ -30,34 +31,38 @@ module.exports = function tokml(geojson, options) {
 function feature(options, styleHashesArray) {
   return function (_) {
     if (!_.properties || !geometry.valid(_.geometry)) return ''
-    var geometryString = geometry.any(_.geometry)
+
+    const geometryString = geometry.any(_.geometry);
     if (!geometryString) return ''
 
-    var styleDefinition = '',
-      styleReference = ''
+    let styleDefinition = '';
+    let styleReference = '';
+
+    let extendedData;
+    if (_.geometry?.type === 'GeometryCollection') {
+      extendedData = extendeddata(_.properties);
+    }
+
     if (options.simplestyle) {
       var styleHash = hashStyle(_.properties)
       if (styleHash) {
-        if (geometry.isPoint(_.geometry) && hasMarkerStyle(_.properties)) {
-          if (styleHashesArray.indexOf(styleHash) === -1) {
-            styleDefinition = markerStyle(_.properties, styleHash)
-            styleHashesArray.push(styleHash)
-          }
-          styleReference = tag('styleUrl', '#' + styleHash)
-          removeMarkerStyle(_.properties)
-        } else if (
-          (geometry.isPolygon(_.geometry) || geometry.isLine(_.geometry)) &&
-          hasPolygonAndLineStyle(_.properties)
-        ) {
-          if (styleHashesArray.indexOf(styleHash) === -1) {
-            styleDefinition = polygonAndLineStyle(_.properties, styleHash)
-            styleHashesArray.push(styleHash)
-          }
-          styleReference = tag('styleUrl', '#' + styleHash)
-          removePolygonAndLineStyle(_.properties)
+
+        const styleTag = style(_.properties, styleHash, options);
+        styleReference = tag('styleUrl', '#' + styleHash);
+
+        if (styleHashesArray.indexOf(styleHash) === -1) {
+          styleHashesArray.push(styleHash);
+          styleDefinition = styleTag;
         }
+
+        removeMarkerStyle(_.properties);
+        removePolygonAndLineStyle(_.properties);
         // Note that style of GeometryCollection / MultiGeometry is not supported
       }
+    }
+
+    if (!extendedData) {
+      extendedData = extendeddata(_.properties);
     }
 
     var attributes = {}
@@ -69,7 +74,7 @@ function feature(options, styleHashesArray) {
         attributes,
         name(_.properties, options) +
           description(_.properties, options) +
-          extendeddata(_.properties) +
+          extendedData +
           timestamp(_.properties, options) +
           geometryString +
           styleReference
@@ -251,6 +256,15 @@ function removeMarkerStyle(_) {
   delete _['marker-shape']
 }
 
+
+function pointStyle(_, styleHash) {
+  const color = tag('color', hexToKmlColor(_['marker-color']) || '7e7e7e')
+  const colorMode = tag('colorMode', 'normal')
+  const icon = tag('Icon', tag('href', iconUrl(_)))
+
+  return tag('IconStyle', color + colorMode + icon)
+}
+
 function markerStyle(_, styleHash) {
   return tag(
     'Style',
@@ -312,7 +326,7 @@ function removePolygonAndLineStyle(_) {
   delete _['fill-opacity']
 }
 
-function polygonAndLineStyle(_, styleHash) {
+function polygonAndLineStyles(_, styleHash) {
   var lineStyle = tag(
     'LineStyle',
     tag(
@@ -335,7 +349,7 @@ function polygonAndLineStyle(_, styleHash) {
     )
   }
 
-  return tag('Style', { id: styleHash }, lineStyle + polyStyle)
+  return lineStyle + polyStyle
 }
 
 // ## Style helpers

@@ -4,19 +4,31 @@ Forked from https://github.com/mapbox/tokml
 
 Convert [GeoJSON](http://geojson.org/) to [KML](https://developers.google.com/kml/documentation/).
 
+## What's different in this fork?
+This fork changes each `<Style>` node to include `<IconStyle>`, `<LineStyle>` and `<PolyStyle>` nodes, each
+with an appropriate `<color>` node. All `<Placemark>` nodes have a `styleHash` associated with them so the styles
+apply to each shape. This approach supports [Fulcrum](https://docs.fulcrumapp.com/docs/developer-information) data,
+which can contain multiple geometry types (Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon)
+within the same file, and seems to apply colors correctly (in most tools).
+
+The [parent](https://github.com/maphubs/tokml) (and [original](https://github.com/mapbox/tokml)) projects used a
+`mapbox.com` url for the `href` in `<Icon>` nodes. This url may have intended to return an icon, but it appears to no
+longer be (publicly) accessible. A new `iconUrl` option has been introduced to allow using a different url, however this
+url will apply to _all_ `<Style><IconStyle><Icon>` nodes, which may cause Point data to show in the incorrect color.
+
 ## Usage
 
 with node/browserify
 
-    npm install --save @maphubs/tokml
+    npm install --save @fulcrumapp/tokml
 
 otherwise:
 
-    wget https://raw.github.com/maphubs/tokml/master/tokml.js
+    wget https://raw.github.com/fulcrumapp/tokml/master/tokml.js
 
 as a binary:
 
-    npm install -g @maphubs/tokml
+    npm install -g @fulcrumapp/tokml
     tokml file.geojson > file.kml
     tokml < file.geojson > file.kml
     
@@ -26,13 +38,13 @@ as a binary:
 ESM
 
 ```js
-import * as tokml from "@maphubs/tokml"
+import * as tokml from "@fulcrumapp/tokml"
 ```
 
 CommonJS
 
 ```js
-var tokml = require('@maphubs/tokml')
+var tokml = require('@fulcrumapp/tokml')
 ```
 
 Browser
@@ -95,6 +107,7 @@ for the full document.
 **[simplestyle-spec](https://github.com/mapbox/simplestyle-spec)** support:
 
 - `simplestyle`: set to `true` to convert simplestyle-spec styles into KML styles
+- `iconUrl`: override the `href` of the `<Icon>` nodes within each `<Style>`
 
 ## Development
 
