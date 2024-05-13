@@ -244,78 +244,11 @@ function data(_) {
   )
 }
 
-// ## Marker style
-function hasMarkerStyle(_) {
-  return !!(_['marker-size'] || _['marker-symbol'] || _['marker-color'])
-}
-
 function removeMarkerStyle(_) {
   delete _['marker-size']
   delete _['marker-symbol']
   delete _['marker-color']
   delete _['marker-shape']
-}
-
-
-function pointStyle(_, styleHash) {
-  const color = tag('color', hexToKmlColor(_['marker-color']) || '7e7e7e')
-  const colorMode = tag('colorMode', 'normal')
-  const icon = tag('Icon', tag('href', iconUrl(_)))
-
-  return tag('IconStyle', color + colorMode + icon)
-}
-
-function markerStyle(_, styleHash) {
-  return tag(
-    'Style',
-    { id: styleHash },
-    tag('IconStyle', tag('Icon', tag('href', iconUrl(_)))) + iconSize(_)
-  )
-}
-
-function iconUrl(_) {
-  var size = _['marker-size'] || 'medium',
-    symbol = _['marker-symbol'] ? '-' + _['marker-symbol'] : '',
-    color = (_['marker-color'] || '7e7e7e').replace('#', '')
-
-  return (
-    'https://api.tiles.mapbox.com/v3/marker/' +
-    'pin-' +
-    size.charAt(0) +
-    symbol +
-    '+' +
-    color +
-    '.png'
-  )
-}
-
-function iconSize(_) {
-  return tag(
-    'hotSpot',
-    {
-      xunits: 'fraction',
-      yunits: 'fraction',
-      x: '0.5',
-      y: '0.5'
-    },
-    ''
-  )
-}
-
-// ## Polygon and Line style
-function hasPolygonAndLineStyle(_) {
-  for (var key in _) {
-    if (
-      {
-        stroke: true,
-        'stroke-opacity': true,
-        'stroke-width': true,
-        fill: true,
-        'fill-opacity': true
-      }[key]
-    )
-      return true
-  }
 }
 
 function removePolygonAndLineStyle(_) {
@@ -324,32 +257,6 @@ function removePolygonAndLineStyle(_) {
   delete _['stroke-width']
   delete _['fill']
   delete _['fill-opacity']
-}
-
-function polygonAndLineStyles(_, styleHash) {
-  var lineStyle = tag(
-    'LineStyle',
-    tag(
-      'color',
-      hexToKmlColor(_['stroke'], _['stroke-opacity']) || 'ff555555'
-    ) +
-      tag('width', {}, _['stroke-width'] === undefined ? 2 : _['stroke-width'])
-  )
-
-  var polyStyle = ''
-
-  if (_['fill'] || _['fill-opacity']) {
-    polyStyle = tag(
-      'PolyStyle',
-      tag(
-        'color',
-        {},
-        hexToKmlColor(_['fill'], _['fill-opacity']) || '88555555'
-      )
-    )
-  }
-
-  return lineStyle + polyStyle
 }
 
 // ## Style helpers
@@ -369,37 +276,6 @@ function hashStyle(_) {
     hash = hash + 'fo' + _['fill-opacity'].toString().replace('.', '')
 
   return hash
-}
-
-function hexToKmlColor(hexColor, opacity) {
-  if (typeof hexColor !== 'string') return ''
-
-  hexColor = hexColor.replace('#', '').toLowerCase()
-
-  if (hexColor.length === 3) {
-    hexColor =
-      hexColor[0] +
-      hexColor[0] +
-      hexColor[1] +
-      hexColor[1] +
-      hexColor[2] +
-      hexColor[2]
-  } else if (hexColor.length !== 6) {
-    return ''
-  }
-
-  var r = hexColor[0] + hexColor[1]
-  var g = hexColor[2] + hexColor[3]
-  var b = hexColor[4] + hexColor[5]
-
-  var o = 'ff'
-  if (typeof opacity === 'number' && opacity >= 0.0 && opacity <= 1.0) {
-    o = (opacity * 255).toString(16)
-    if (o.indexOf('.') > -1) o = o.substr(0, o.indexOf('.'))
-    if (o.length < 2) o = '0' + o
-  }
-
-  return o + b + g + r
 }
 
 // ## General helpers
