@@ -1,3 +1,7 @@
+## 0.7.1
+
+- Extracts `placemark`, `geometry` and `extendedData` into standalone functions
+
 ## 0.7.0
 
 - Outputs each `styleHash` with `IconStyle`, `LineStyle` and `PolyStyle` nodes

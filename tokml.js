@@ -1,5 +1,8 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.tokml = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-var esc = require('./lib/xml-escape')
+const style = require('./lib/style')
+const extendedData = require('./lib/extendedData')
+const geometry = require('./lib/geometry');
+const placemark = require('./lib/placemark')
 var strxml = require('./lib/strxml'),
   tag = strxml.tag
 
@@ -30,51 +33,38 @@ module.exports = function tokml(geojson, options) {
 
 function feature(options, styleHashesArray) {
   return function (_) {
-    if (!_.properties || !geometry.valid(_.geometry)) return ''
-    var geometryString = geometry.any(_.geometry)
-    if (!geometryString) return ''
+    if (!_.properties || !geometry.valid(_.geometry) || !geometry.any(_.geometry)) return ''
 
-    var styleDefinition = '',
-      styleReference = ''
+    let styleDefinition = '';
+
+    let extendeddata;
+    if (_.geometry?.type === 'GeometryCollection') {
+      extendeddata = extendedData(_.properties);
+    }
+
     if (options.simplestyle) {
       var styleHash = hashStyle(_.properties)
       if (styleHash) {
-        if (geometry.isPoint(_.geometry) && hasMarkerStyle(_.properties)) {
-          if (styleHashesArray.indexOf(styleHash) === -1) {
-            styleDefinition = markerStyle(_.properties, styleHash)
-            styleHashesArray.push(styleHash)
-          }
-          styleReference = tag('styleUrl', '#' + styleHash)
-          removeMarkerStyle(_.properties)
-        } else if (
-          (geometry.isPolygon(_.geometry) || geometry.isLine(_.geometry)) &&
-          hasPolygonAndLineStyle(_.properties)
-        ) {
-          if (styleHashesArray.indexOf(styleHash) === -1) {
-            styleDefinition = polygonAndLineStyle(_.properties, styleHash)
-            styleHashesArray.push(styleHash)
-          }
-          styleReference = tag('styleUrl', '#' + styleHash)
-          removePolygonAndLineStyle(_.properties)
+
+        const styleTag = style(_.properties, styleHash, options);
+
+        if (styleHashesArray.indexOf(styleHash) === -1) {
+          styleHashesArray.push(styleHash);
+          styleDefinition = styleTag;
         }
+
+        removeMarkerStyle(_.properties);
+        removePolygonAndLineStyle(_.properties);
         // Note that style of GeometryCollection / MultiGeometry is not supported
       }
     }
 
-    var attributes = {}
-    if (_.id) attributes.id = _.id.toString();
+    if (!extendeddata) {
+      extendeddata = extendedData(_.properties);
+    }
+
     return (
-      styleDefinition +
-      tag(
-        'Placemark',
-        attributes,
-        name(_.properties, options) +
-          description(_.properties, options) +
-          extendeddata(_.properties) +
-          timestamp(_.properties, options) +
-          geometryString +
-          styleReference
-      )
+      styleDefinition + placemark(_, extendeddata, styleHash, options)
     )
   }
 }
@@ -113,26 +103,77 @@ function documentDescription(options) {
     : ''
 }
 
-function name(_, options) {
-  return _[options.name] ? tag('name', esc(_[options.name])) : ''
+function removeMarkerStyle(_) {
+  delete _['marker-size']
+  delete _['marker-symbol']
+  delete _['marker-color']
+  delete _['marker-shape']
 }
 
-function description(_, options) {
-  return _[options.description]
-    ? tag('description', esc(_[options.description]))
-    : ''
+function removePolygonAndLineStyle(_) {
+  delete _['stroke']
+  delete _['stroke-opacity']
+  delete _['stroke-width']
+  delete _['fill']
+  delete _['fill-opacity']
 }
 
-function timestamp(_, options) {
-  return _[options.timestamp]
-    ? tag('TimeStamp', tag('when', esc(_[options.timestamp])))
-    : ''
+// ## Style helpers
+function hashStyle(_) {
+  var hash = ''
+
+  if (_['marker-symbol']) hash = hash + 'ms' + _['marker-symbol']
+  if (_['marker-color']) hash = hash + 'mc' + _['marker-color'].replace('#', '')
+  if (_['marker-size']) hash = hash + 'ms' + _['marker-size']
+  if (_['stroke']) hash = hash + 's' + _['stroke'].replace('#', '')
+  if (_['stroke-width'])
+    hash = hash + 'sw' + _['stroke-width'].toString().replace('.', '')
+  if (_['stroke-opacity'])
+    hash = hash + 'mo' + _['stroke-opacity'].toString().replace('.', '')
+  if (_['fill']) hash = hash + 'f' + _['fill'].replace('#', '')
+  if (_['fill-opacity'])
+    hash = hash + 'fo' + _['fill-opacity'].toString().replace('.', '')
+
+  return hash
 }
 
-// ## Geometry Types
-//
+},{"./lib/extendedData":2,"./lib/geometry":3,"./lib/placemark":4,"./lib/strxml":5,"./lib/style":6}],2:[function(require,module,exports){
+
+const strxml = require('./strxml');
+const tag = strxml.tag;
+const esc = require('./xml-escape');
+
+module.exports = function extendedData(_) {
+  return tag('ExtendedData', {}, pairs(_).map(data).join(''))
+}
+
+function data(_) {
+  return tag(
+    'Data',
+    { name: _[0] },
+    tag('value', {}, esc(_[1] ? _[1].toString() : ''))
+  )
+}
+
+// ## General helpers
+function pairs(_) {
+  var o = []
+  for (var i in _) {
+    if (_[i]) {
+      o.push([i, _[i]])
+    } else {
+      o.push([i, ''])
+    }
+  }
+  return o
+}
+
+},{"./strxml":5,"./xml-escape":7}],3:[function(require,module,exports){
+const strxml = require('./strxml');
+const tag = strxml.tag;
+
 // https://developers.google.com/kml/documentation/kmlreference#geometry
-var geometry = {
+const geometry = {
   Point: function (_) {
     return tag('Point', tag('coordinates', _.coordinates.join(',')))
   },
@@ -227,182 +268,52 @@ function linearring(_) {
   }).join(' ')
 }
 
-// ## Data
-function extendeddata(_) {
-  return tag('ExtendedData', {}, pairs(_).map(data).join(''))
-}
+module.exports = geometry;
+},{"./strxml":5}],4:[function(require,module,exports){
+const geometry = require('./geometry');
+const strxml = require('./strxml');
+const tag = strxml.tag;
+const esc = require('./xml-escape');
 
-function data(_) {
+module.exports = function placemark(_, extendeddata, styleHash, options) {
+  const id = _.id?.toString();
+  const attrs = {};
+
+  if (id) {
+    attrs.id = id;
+  }
+
+  const styleReference = styleHash ? tag('styleUrl', '#' + styleHash) : '';
+
   return tag(
-    'Data',
-    { name: _[0] },
-    tag('value', {}, esc(_[1] ? _[1].toString() : ''))
+    'Placemark', 
+    attrs, 
+    name(_.properties, options) +
+      description(_.properties, options) +
+      extendeddata +
+      timestamp(_.properties, options) +
+      geometry.any(_.geometry) +
+      styleReference
   )
 }
 
-// ## Marker style
-function hasMarkerStyle(_) {
-  return !!(_['marker-size'] || _['marker-symbol'] || _['marker-color'])
+function name(_, options) {
+  return _[options.name] ? tag('name', esc(_[options.name])) : ''
 }
 
-function removeMarkerStyle(_) {
-  delete _['marker-size']
-  delete _['marker-symbol']
-  delete _['marker-color']
-  delete _['marker-shape']
+function description(_, options) {
+  return _[options.description]
+    ? tag('description', esc(_[options.description]))
+    : ''
 }
 
-function markerStyle(_, styleHash) {
-  return tag(
-    'Style',
-    { id: styleHash },
-    tag('IconStyle', tag('Icon', tag('href', iconUrl(_)))) + iconSize(_)
-  )
+function timestamp(_, options) {
+  return _[options.timestamp]
+    ? tag('TimeStamp', tag('when', esc(_[options.timestamp])))
+    : ''
 }
 
-function iconUrl(_) {
-  var size = _['marker-size'] || 'medium',
-    symbol = _['marker-symbol'] ? '-' + _['marker-symbol'] : '',
-    color = (_['marker-color'] || '7e7e7e').replace('#', '')
-
-  return (
-    'https://api.tiles.mapbox.com/v3/marker/' +
-    'pin-' +
-    size.charAt(0) +
-    symbol +
-    '+' +
-    color +
-    '.png'
-  )
-}
-
-function iconSize(_) {
-  return tag(
-    'hotSpot',
-    {
-      xunits: 'fraction',
-      yunits: 'fraction',
-      x: '0.5',
-      y: '0.5'
-    },
-    ''
-  )
-}
-
-// ## Polygon and Line style
-function hasPolygonAndLineStyle(_) {
-  for (var key in _) {
-    if (
-      {
-        stroke: true,
-        'stroke-opacity': true,
-        'stroke-width': true,
-        fill: true,
-        'fill-opacity': true
-      }[key]
-    )
-      return true
-  }
-}
-
-function removePolygonAndLineStyle(_) {
-  delete _['stroke']
-  delete _['stroke-opacity']
-  delete _['stroke-width']
-  delete _['fill']
-  delete _['fill-opacity']
-}
-
-function polygonAndLineStyle(_, styleHash) {
-  var lineStyle = tag(
-    'LineStyle',
-    tag(
-      'color',
-      hexToKmlColor(_['stroke'], _['stroke-opacity']) || 'ff555555'
-    ) +
-      tag('width', {}, _['stroke-width'] === undefined ? 2 : _['stroke-width'])
-  )
-
-  var polyStyle = ''
-
-  if (_['fill'] || _['fill-opacity']) {
-    polyStyle = tag(
-      'PolyStyle',
-      tag(
-        'color',
-        {},
-        hexToKmlColor(_['fill'], _['fill-opacity']) || '88555555'
-      )
-    )
-  }
-
-  return tag('Style', { id: styleHash }, lineStyle + polyStyle)
-}
-
-// ## Style helpers
-function hashStyle(_) {
-  var hash = ''
-
-  if (_['marker-symbol']) hash = hash + 'ms' + _['marker-symbol']
-  if (_['marker-color']) hash = hash + 'mc' + _['marker-color'].replace('#', '')
-  if (_['marker-size']) hash = hash + 'ms' + _['marker-size']
-  if (_['stroke']) hash = hash + 's' + _['stroke'].replace('#', '')
-  if (_['stroke-width'])
-    hash = hash + 'sw' + _['stroke-width'].toString().replace('.', '')
-  if (_['stroke-opacity'])
-    hash = hash + 'mo' + _['stroke-opacity'].toString().replace('.', '')
-  if (_['fill']) hash = hash + 'f' + _['fill'].replace('#', '')
-  if (_['fill-opacity'])
-    hash = hash + 'fo' + _['fill-opacity'].toString().replace('.', '')
-
-  return hash
-}
-
-function hexToKmlColor(hexColor, opacity) {
-  if (typeof hexColor !== 'string') return ''
-
-  hexColor = hexColor.replace('#', '').toLowerCase()
-
-  if (hexColor.length === 3) {
-    hexColor =
-      hexColor[0] +
-      hexColor[0] +
-      hexColor[1] +
-      hexColor[1] +
-      hexColor[2] +
-      hexColor[2]
-  } else if (hexColor.length !== 6) {
-    return ''
-  }
-
-  var r = hexColor[0] + hexColor[1]
-  var g = hexColor[2] + hexColor[3]
-  var b = hexColor[4] + hexColor[5]
-
-  var o = 'ff'
-  if (typeof opacity === 'number' && opacity >= 0.0 && opacity <= 1.0) {
-    o = (opacity * 255).toString(16)
-    if (o.indexOf('.') > -1) o = o.substr(0, o.indexOf('.'))
-    if (o.length < 2) o = '0' + o
-  }
-
-  return o + b + g + r
-}
-
-// ## General helpers
-function pairs(_) {
-  var o = []
-  for (var i in _) {
-    if (_[i]) {
-      o.push([i, _[i]])
-    } else {
-      o.push([i, ''])
-    }
-  }
-  return o
-}
-
-},{"./lib/strxml":2,"./lib/xml-escape":3}],2:[function(require,module,exports){
+},{"./geometry":3,"./strxml":5,"./xml-escape":7}],5:[function(require,module,exports){
 /* istanbul ignore file */
 // strxml from https://github.com/mapbox/strxml
 
@@ -460,7 +371,143 @@ function tag(el, attributes, contents) {
   return '<' + el + attr(attributes) + '>' + contents + '</' + el + '>'
 }
 
-},{"./xml-escape":3}],3:[function(require,module,exports){
+},{"./xml-escape":7}],6:[function(require,module,exports){
+var strxml = require('./strxml'),
+  tag = strxml.tag
+
+const defaultPointColor = '7e7e7e';
+const defaultPolyAndLineColor = '555555'
+
+module.exports = function style(_, styleHash, options) {
+  const points = pointStyle(_, options);
+  const polysAndLines = polygonAndLineStyles(_);
+  const hotSpot = iconSize(_);
+
+  return tag('Style', { id: styleHash}, points + polysAndLines + hotSpot);
+}
+
+function currentColor(_) {
+  let markerColor = hexToKmlColor(_['marker-color']) || currentPolyColor(_) || currentLineColor(_);
+
+  return markerColor || forceOpacity(defaultPointColor, 'ff');
+}
+
+function currentColorRawValue(_) {
+  return _['marker-color'] || _['fill'] || _['stroke'] || defaultPointColor;
+}
+
+function currentLineColor(_) {
+  return hexToKmlColor(_['stroke'], _['stroke-opacity'])
+}
+
+function currentPolyColor(_) {
+  return hexToKmlColor(_['fill'], _['fill-opacity'])
+}
+
+function newColorModeTag() {
+  return tag('colorMode', 'normal')
+}
+
+function pointStyle(_, options) {
+  const color = tag('color', forceOpacity(currentColor(_), 'ff'))
+  const colorMode = newColorModeTag();
+  const icon = tag('Icon', tag('href', iconUrl(_, options)))
+
+  return tag('IconStyle', color + colorMode + icon)
+}
+
+function forceOpacity(color, opacity) {
+  return opacity + color.slice(-6);
+}
+
+function polygonAndLineStyles(_) {
+  const color = currentColor(_);
+  let lineColor = color;
+  let lineWidth = _['stroke-width'] === undefined ? 2 : _['stroke-width'];
+  let polyColor = forceOpacity(color, '88');
+
+  if (_['stroke' || _['stroke-opacity']]) {
+    lineColor = currentLineColor(_) || forceOpacity(defaultPolyAndLineColor, 'ff');
+  }
+
+  if (_['fill'] || _['fill-opacity']) {
+    polyColor = currentPolyColor(_)  || forceOpacity(defaultPolyAndLineColor, '88')
+  }
+
+  const widthTag = tag('width', String(lineWidth));
+  const lineColorTag = tag('color', lineColor);
+  const polyTag = tag('color', polyColor);
+  const lineStyle = tag('LineStyle', lineColorTag + newColorModeTag() + widthTag);
+  const polyStyle = tag('PolyStyle', polyTag + newColorModeTag());
+
+  return lineStyle + polyStyle
+}
+
+function iconSize(_) {
+  return tag(
+    'hotSpot',
+    {
+      xunits: 'fraction',
+      yunits: 'fraction',
+      x: '0.5',
+      y: '0.5'
+    },
+    ''
+  )
+}
+
+function hexToKmlColor(hexColor, opacity) {
+  if (typeof hexColor !== 'string') return ''
+
+  hexColor = hexColor.replace('#', '').toLowerCase()
+
+  if (hexColor.length === 3) {
+    hexColor =
+      hexColor[0] +
+      hexColor[0] +
+      hexColor[1] +
+      hexColor[1] +
+      hexColor[2] +
+      hexColor[2]
+  } else if (hexColor.length !== 6) {
+    return ''
+  }
+
+  var r = hexColor[0] + hexColor[1]
+  var g = hexColor[2] + hexColor[3]
+  var b = hexColor[4] + hexColor[5]
+
+  var o = 'ff'
+  if (typeof opacity === 'number' && opacity >= 0.0 && opacity <= 1.0) {
+    o = (opacity * 255).toString(16)
+    if (o.indexOf('.') > -1) o = o.substr(0, o.indexOf('.'))
+    if (o.length < 2) o = '0' + o
+  }
+
+  return o + b + g + r
+}
+
+function iconUrl(_, options) {
+  return options?.iconUrl ?? legacyIconUrl(_)
+}
+
+function legacyIconUrl(_) {
+  var size = _['marker-size'] || 'medium',
+    symbol = _['marker-symbol'] ? '-' + _['marker-symbol'] : '',
+    color = (currentColorRawValue(_) || defaultPointColor).replace('#', '')
+
+  return (
+    'https://api.tiles.mapbox.com/v3/marker/' +
+    'pin-' +
+    size.charAt(0) +
+    symbol +
+    '+' +
+    color +
+    '.png'
+  )
+}
+
+},{"./strxml":5}],7:[function(require,module,exports){
 /* istanbul ignore file */
 // originally from https://github.com/miketheprogrammer/xml-escape
 
