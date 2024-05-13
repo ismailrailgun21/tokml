@@ -63,7 +63,7 @@ function feature(options, styleHashesArray) {
     }
 
     return (
-      styleDefinition + placemark(_, extendeddata, styleHash, options)
+      styleDefinition + placemark(_, styleHash, options, extendeddata)
     )
   }
 }
