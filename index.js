@@ -1,5 +1,7 @@
 const style = require('./lib/style')
-var esc = require('./lib/xml-escape')
+const extendedData = require('./lib/extendedData')
+const geometry = require('./lib/geometry');
+const placemark = require('./lib/placemark')
 var strxml = require('./lib/strxml'),
   tag = strxml.tag
 
@@ -30,17 +32,13 @@ module.exports = function tokml(geojson, options) {
 
 function feature(options, styleHashesArray) {
   return function (_) {
-    if (!_.properties || !geometry.valid(_.geometry)) return ''
-
-    const geometryString = geometry.any(_.geometry);
-    if (!geometryString) return ''
+    if (!_.properties || !geometry.valid(_.geometry) || !geometry.any(_.geometry)) return ''
 
     let styleDefinition = '';
-    let styleReference = '';
 
-    let extendedData;
+    let extendeddata;
     if (_.geometry?.type === 'GeometryCollection') {
-      extendedData = extendeddata(_.properties);
+      extendeddata = extendedData(_.properties);
     }
 
     if (options.simplestyle) {
@@ -48,7 +46,6 @@ function feature(options, styleHashesArray) {
       if (styleHash) {
 
         const styleTag = style(_.properties, styleHash, options);
-        styleReference = tag('styleUrl', '#' + styleHash);
 
         if (styleHashesArray.indexOf(styleHash) === -1) {
           styleHashesArray.push(styleHash);
@@ -61,24 +58,12 @@ function feature(options, styleHashesArray) {
       }
     }
 
-    if (!extendedData) {
-      extendedData = extendeddata(_.properties);
+    if (!extendeddata) {
+      extendeddata = extendedData(_.properties);
     }
 
-    var attributes = {}
-    if (_.id) attributes.id = _.id.toString();
     return (
-      styleDefinition +
-      tag(
-        'Placemark',
-        attributes,
-        name(_.properties, options) +
-          description(_.properties, options) +
-          extendedData +
-          timestamp(_.properties, options) +
-          geometryString +
-          styleReference
-      )
+      styleDefinition + placemark(_, extendeddata, styleHash, options)
     )
   }
 }
@@ -117,133 +102,6 @@ function documentDescription(options) {
     : ''
 }
 
-function name(_, options) {
-  return _[options.name] ? tag('name', esc(_[options.name])) : ''
-}
-
-function description(_, options) {
-  return _[options.description]
-    ? tag('description', esc(_[options.description]))
-    : ''
-}
-
-function timestamp(_, options) {
-  return _[options.timestamp]
-    ? tag('TimeStamp', tag('when', esc(_[options.timestamp])))
-    : ''
-}
-
-// ## Geometry Types
-//
-// https://developers.google.com/kml/documentation/kmlreference#geometry
-var geometry = {
-  Point: function (_) {
-    return tag('Point', tag('coordinates', _.coordinates.join(',')))
-  },
-  LineString: function (_) {
-    return tag('LineString', tag('coordinates', linearring(_.coordinates)))
-  },
-  Polygon: function (_) {
-    if (!_.coordinates.length) return ''
-    var outer = _.coordinates[0],
-      inner = _.coordinates.slice(1),
-      outerRing = tag(
-        'outerBoundaryIs',
-        tag('LinearRing', tag('coordinates', linearring(outer)))
-      ),
-      innerRings = inner
-        .map(function (i) {
-          return tag(
-            'innerBoundaryIs',
-            tag('LinearRing', tag('coordinates', linearring(i)))
-          )
-        })
-        .join('')
-    return tag('Polygon', outerRing + innerRings)
-  },
-  MultiPoint: function (_) {
-    if (!_.coordinates.length) return ''
-    return tag(
-      'MultiGeometry',
-      _.coordinates
-        .map(function (c) {
-          return geometry.Point({ coordinates: c })
-        })
-        .join('')
-    )
-  },
-  MultiPolygon: function (_) {
-    if (!_.coordinates.length) return ''
-    return tag(
-      'MultiGeometry',
-      _.coordinates
-        .map(function (c) {
-          return geometry.Polygon({ coordinates: c })
-        })
-        .join('')
-    )
-  },
-  MultiLineString: function (_) {
-    if (!_.coordinates.length) return ''
-    return tag(
-      'MultiGeometry',
-      _.coordinates
-        .map(function (c) {
-          return geometry.LineString({ coordinates: c })
-        })
-        .join('')
-    )
-  },
-  GeometryCollection: function (_) {
-    return tag('MultiGeometry', _.geometries.map(geometry.any).join(''))
-  },
-  valid: function (_) {
-    return (
-      _ &&
-      _.type &&
-      (_.coordinates ||
-        (_.type === 'GeometryCollection' &&
-          _.geometries &&
-          _.geometries.every(geometry.valid)))
-    )
-  },
-  any: function (_) {
-    if (geometry[_.type]) {
-      return geometry[_.type](_)
-    } else {
-      return ''
-    }
-  },
-  isPoint: function (_) {
-    return _.type === 'Point' || _.type === 'MultiPoint'
-  },
-  isPolygon: function (_) {
-    return _.type === 'Polygon' || _.type === 'MultiPolygon'
-  },
-  isLine: function (_) {
-    return _.type === 'LineString' || _.type === 'MultiLineString'
-  }
-}
-
-function linearring(_) {
-  return _.map(function (cds) {
-    return cds.join(',')
-  }).join(' ')
-}
-
-// ## Data
-function extendeddata(_) {
-  return tag('ExtendedData', {}, pairs(_).map(data).join(''))
-}
-
-function data(_) {
-  return tag(
-    'Data',
-    { name: _[0] },
-    tag('value', {}, esc(_[1] ? _[1].toString() : ''))
-  )
-}
-
 function removeMarkerStyle(_) {
   delete _['marker-size']
   delete _['marker-symbol']
@@ -276,17 +134,4 @@ function hashStyle(_) {
     hash = hash + 'fo' + _['fill-opacity'].toString().replace('.', '')
 
   return hash
-}
-
-// ## General helpers
-function pairs(_) {
-  var o = []
-  for (var i in _) {
-    if (_[i]) {
-      o.push([i, _[i]])
-    } else {
-      o.push([i, ''])
-    }
-  }
-  return o
 }
