@@ -1,19 +1,13 @@
 const style = require('./lib/style')
 const extendedData = require('./lib/extendedData')
 const geometry = require('./lib/geometry');
-const placemark = require('./lib/placemark')
+const placemark = require('./lib/placemark');
+const defaultOptions = require('./lib/defaultOptions');
 var strxml = require('./lib/strxml'),
   tag = strxml.tag
 
 module.exports = function tokml(geojson, options) {
-  options = options || {
-    documentName: undefined,
-    documentDescription: undefined,
-    name: 'name',
-    description: 'description',
-    simplestyle: false,
-    timestamp: 'timestamp'
-  }
+  options = options || defaultOptions();
 
   return (
     '<?xml version="1.0" encoding="UTF-8"?>' +
