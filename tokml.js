@@ -2,19 +2,13 @@
 const style = require('./lib/style')
 const extendedData = require('./lib/extendedData')
 const geometry = require('./lib/geometry');
-const placemark = require('./lib/placemark')
+const placemark = require('./lib/placemark');
+const defaultOptions = require('./lib/defaultOptions');
 var strxml = require('./lib/strxml'),
   tag = strxml.tag
 
 module.exports = function tokml(geojson, options) {
-  options = options || {
-    documentName: undefined,
-    documentDescription: undefined,
-    name: 'name',
-    description: 'description',
-    simplestyle: false,
-    timestamp: 'timestamp'
-  }
+  options = options || defaultOptions();
 
   return (
     '<?xml version="1.0" encoding="UTF-8"?>' +
@@ -64,7 +58,7 @@ function feature(options, styleHashesArray) {
     }
 
     return (
-      styleDefinition + placemark(_, extendeddata, styleHash, options)
+      styleDefinition + placemark(_, styleHash, options, extendeddata)
     )
   }
 }
@@ -137,7 +131,18 @@ function hashStyle(_) {
   return hash
 }
 
-},{"./lib/extendedData":2,"./lib/geometry":3,"./lib/placemark":4,"./lib/strxml":5,"./lib/style":6}],2:[function(require,module,exports){
+},{"./lib/defaultOptions":2,"./lib/extendedData":3,"./lib/geometry":4,"./lib/placemark":5,"./lib/strxml":6,"./lib/style":7}],2:[function(require,module,exports){
+module.exports = function defaultOptions() {
+  return {
+    documentName: undefined,
+    documentDescription: undefined,
+    name: 'name',
+    description: 'description',
+    simplestyle: false,
+    timestamp: 'timestamp'
+  }
+}
+},{}],3:[function(require,module,exports){
 
 const strxml = require('./strxml');
 const tag = strxml.tag;
@@ -168,7 +173,7 @@ function pairs(_) {
   return o
 }
 
-},{"./strxml":5,"./xml-escape":7}],3:[function(require,module,exports){
+},{"./strxml":6,"./xml-escape":8}],4:[function(require,module,exports){
 const strxml = require('./strxml');
 const tag = strxml.tag;
 
@@ -269,20 +274,24 @@ function linearring(_) {
 }
 
 module.exports = geometry;
-},{"./strxml":5}],4:[function(require,module,exports){
+},{"./strxml":6}],5:[function(require,module,exports){
+const defaultOptions = require('./defaultOptions');
+const extendedData = require('./extendedData');
 const geometry = require('./geometry');
 const strxml = require('./strxml');
 const tag = strxml.tag;
 const esc = require('./xml-escape');
 
-module.exports = function placemark(_, extendeddata, styleHash, options) {
+module.exports = function placemark(_, styleHash, options, extendeddata) {
+  options = options ?? defaultOptions();
+
   const id = _.id?.toString();
   const attrs = {};
-
   if (id) {
     attrs.id = id;
   }
 
+  const data = extendeddata ?? extendedData(_.properties);
   const styleReference = styleHash ? tag('styleUrl', '#' + styleHash) : '';
 
   return tag(
@@ -290,7 +299,7 @@ module.exports = function placemark(_, extendeddata, styleHash, options) {
     attrs, 
     name(_.properties, options) +
       description(_.properties, options) +
-      extendeddata +
+      data +
       timestamp(_.properties, options) +
       geometry.any(_.geometry) +
       styleReference
@@ -313,7 +322,7 @@ function timestamp(_, options) {
     : ''
 }
 
-},{"./geometry":3,"./strxml":5,"./xml-escape":7}],5:[function(require,module,exports){
+},{"./defaultOptions":2,"./extendedData":3,"./geometry":4,"./strxml":6,"./xml-escape":8}],6:[function(require,module,exports){
 /* istanbul ignore file */
 // strxml from https://github.com/mapbox/strxml
 
@@ -371,14 +380,17 @@ function tag(el, attributes, contents) {
   return '<' + el + attr(attributes) + '>' + contents + '</' + el + '>'
 }
 
-},{"./xml-escape":7}],6:[function(require,module,exports){
-var strxml = require('./strxml'),
-  tag = strxml.tag
+},{"./xml-escape":8}],7:[function(require,module,exports){
+const defaultOptions = require('./defaultOptions');
+const strxml = require('./strxml')
+const tag = strxml.tag
 
 const defaultPointColor = '7e7e7e';
 const defaultPolyAndLineColor = '555555'
 
 module.exports = function style(_, styleHash, options) {
+  options = options || defaultOptions();
+
   const points = pointStyle(_, options);
   const polysAndLines = polygonAndLineStyles(_);
   const hotSpot = iconSize(_);
@@ -507,7 +519,7 @@ function legacyIconUrl(_) {
   )
 }
 
-},{"./strxml":5}],7:[function(require,module,exports){
+},{"./defaultOptions":2,"./strxml":6}],8:[function(require,module,exports){
 /* istanbul ignore file */
 // originally from https://github.com/miketheprogrammer/xml-escape
 

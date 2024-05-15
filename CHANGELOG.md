@@ -1,6 +1,7 @@
 ## 0.7.1
 
 - Extracts `placemark`, `geometry` and `extendedData` into standalone functions
+- Address dependabot issues
 
 ## 0.7.0
 
