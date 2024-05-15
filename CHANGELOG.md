@@ -1,3 +1,8 @@
+## 0.7.1
+
+- Extracts `placemark`, `geometry` and `extendedData` into standalone functions
+- Address dependabot issues
+
 ## 0.7.0
 
 - Outputs each `styleHash` with `IconStyle`, `LineStyle` and `PolyStyle` nodes
