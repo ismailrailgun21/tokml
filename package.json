@@ -1,5 +1,5 @@
 {
-  "name": "@fulcrumapp/tokml",
+  "name": "@fulcrum/tokml",
   "version": "0.7.1",
   "description": "convert geojson to kml",
   "main": "index.js",
