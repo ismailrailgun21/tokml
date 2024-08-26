@@ -1,13 +1,13 @@
 const style = require('./lib/style')
 const extendedData = require('./lib/extendedData')
-const geometry = require('./lib/geometry');
-const placemark = require('./lib/placemark');
-const defaultOptions = require('./lib/defaultOptions');
+const geometry = require('./lib/geometry')
+const placemark = require('./lib/placemark')
+const defaultOptions = require('./lib/defaultOptions')
 var strxml = require('./lib/strxml'),
   tag = strxml.tag
 
 module.exports = function tokml(geojson, options) {
-  options = options || defaultOptions();
+  options = options || defaultOptions()
 
   return (
     '<?xml version="1.0" encoding="UTF-8"?>' +
@@ -26,39 +26,41 @@ module.exports = function tokml(geojson, options) {
 
 function feature(options, styleHashesArray) {
   return function (_) {
-    if (!_.properties || !geometry.valid(_.geometry) || !geometry.any(_.geometry)) return ''
+    if (
+      !_.properties ||
+      !geometry.valid(_.geometry) ||
+      !geometry.any(_.geometry)
+    )
+      return ''
 
-    let styleDefinition = '';
+    let styleDefinition = ''
 
-    let extendeddata;
+    let extendeddata
     if (_.geometry?.type === 'GeometryCollection') {
-      extendeddata = extendedData(_.properties);
+      extendeddata = extendedData(_.properties)
     }
 
     if (options.simplestyle) {
       var styleHash = hashStyle(_.properties)
       if (styleHash) {
-
-        const styleTag = style(_.properties, styleHash, options);
+        const styleTag = style(_.properties, styleHash, options)
 
         if (styleHashesArray.indexOf(styleHash) === -1) {
-          styleHashesArray.push(styleHash);
-          styleDefinition = styleTag;
+          styleHashesArray.push(styleHash)
+          styleDefinition = styleTag
         }
 
-        removeMarkerStyle(_.properties);
-        removePolygonAndLineStyle(_.properties);
+        removeMarkerStyle(_.properties)
+        removePolygonAndLineStyle(_.properties)
         // Note that style of GeometryCollection / MultiGeometry is not supported
       }
     }
 
     if (!extendeddata) {
-      extendeddata = extendedData(_.properties);
+      extendeddata = extendedData(_.properties)
     }
 
-    return (
-      styleDefinition + placemark(_, styleHash, options, extendeddata)
-    )
+    return styleDefinition + placemark(_, styleHash, options, extendeddata)
   }
 }
 
@@ -99,6 +101,7 @@ function documentDescription(options) {
 function removeMarkerStyle(_) {
   delete _['marker-size']
   delete _['marker-symbol']
+  delete _['marker-icon']
   delete _['marker-color']
   delete _['marker-shape']
 }
@@ -116,6 +119,7 @@ function hashStyle(_) {
   var hash = ''
 
   if (_['marker-symbol']) hash = hash + 'ms' + _['marker-symbol']
+  if (_['marker-icon']) hash = hash + 'mi' + _['marker-icon']
   if (_['marker-color']) hash = hash + 'mc' + _['marker-color'].replace('#', '')
   if (_['marker-size']) hash = hash + 'ms' + _['marker-size']
   if (_['stroke']) hash = hash + 's' + _['stroke'].replace('#', '')
